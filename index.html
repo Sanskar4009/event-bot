@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Finder AI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Consolas', monospace;
+        }
+
+        body {
+            background: #008080;
+            min-height: 100vh;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            box-shadow: inset -1px -1px #404040;
+            width: 100vw;
+            max-width: 100vw;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+        }
+
+        .chat-header {
+            background: #000080;
+            color: white;
+            padding: 5px 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            position: relative;
+        }
+
+        .header-right-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .window-button {
+            width: 16px;
+            height: 16px;
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .window-button:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .minimize::after {
+            content: '';
+            position: absolute;
+            bottom: 3px;
+            left: 3px;
+            width: 6px;
+            height: 2px;
+            background: #000000;
+        }
+
+        .maximize::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 6px;
+            height: 6px;
+            border: 1px solid #000000;
+        }
+
+        .restore::after {
+            content: '';
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-left: 1px solid #000000;
+            border-top: 1px solid #000000;
+            top: 3px;
+            left: 5px;
+        }
+
+        .restore::before {
+            content: '';
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-right: 1px solid #000000;
+            border-bottom: 1px solid #000000;
+            bottom: 3px;
+            right: 5px;
+            background: #c0c0c0;
+        }
+
+        .close::after {
+            content: '×';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000000;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        /* Remove the overlapping pseudo-elements */
+        .chat-header::before,
+        .chat-header::after {
+            display: none;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chat-title i {
+            font-size: 14px;
+        }
+
+        .suggestion-chip i {
+            margin-right: 4px;
+            font-size: 12px;
+        }
+
+        .message.bot-message.welcome-animation {
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: #c0c0c0;
+            padding: 15px;
+        }
+
+        .welcome-title {
+            color: #000080;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .category-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .status-bar {
+            background: #c0c0c0;
+            border-top: 2px solid #808080;
+            padding: 3px 10px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dark-theme .status-bar {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .help-button {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        .dark-theme .help-button {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .chat-suggestions {
+            padding: 10px;
+            background: #c0c0c0;
+            border-bottom: 2px solid #808080;
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+
+        .suggestion-chip {
+            display: inline-block;
+            padding: 3px 10px;
+            margin: 3px;
+            background: #c0c0c0;
+            color: black;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .suggestion-chip:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            height: calc(100vh - 200px); /* Adjust based on other elements */
+        }
+
+        .message {
+            margin-bottom: 10px;
+            max-width: 85%;
+            padding: 8px 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+        }
+
+        .user-message {
+            margin-left: auto;
+            background: #c0c0c0;
+            color: black;
+        }
+
+        .bot-message {
+            background: #c0c0c0;
+            color: black;
+        }
+
+        .event-card {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        .event-card h3 {
+            color: #000000;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .event-details {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .event-details span:nth-child(odd) {
+            color: #000000;
+        }
+
+        .event-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border: 1px solid #808080;
+            margin-bottom: 10px;
+        }
+
+        .event-button {
+            padding: 3px 10px;
+            background: #c0c0c0;
+            color: black;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            font-size: 12px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        .event-button:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .chat-input {
+            padding: 10px;
+            background: #c0c0c0;
+            border-top: 2px solid #808080;
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 5px 10px;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            background: white;
+            font-size: 14px;
+        }
+
+        #send-button {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            color: black;
+            padding: 5px 15px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        #send-button:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #c0c0c0;
+            color: black;
+            border: 1px solid #808080;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        .error-message {
+            color: #000000;
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #808080 #ffffff #ffffff #808080;
+            padding: 8px 12px;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .typewriter {
+            display: inline-block;
+            border: none;
+            background: none;
+            font-size: 14px;
+        }
+
+        .typewriter::after {
+            content: '_';
+            color: #000080;
+            animation: blink 1s steps(1) infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        .theme-toggle:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .dark-theme {
+            background: #000000;
+        }
+
+        .dark-theme .container {
+            background: #000080;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .chat-messages {
+            background: #000000;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .user-message,
+        .dark-theme .bot-message {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme #user-input {
+            background: #000000;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .event-card {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .event-button {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .category-badge {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .dark-theme .error-message {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .footer {
+            background: #c0c0c0;
+            padding: 8px 15px;
+            border-top: 2px solid #808080;
+            font-size: 12px;
+            text-align: center;
+            color: #000000;
+        }
+
+        .dark-theme .footer {
+            background: #000080;
+            color: #ffffff;
+            border-color: #c0c0c0;
+        }
+
+        .footer span {
+            margin: 0 5px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #c0c0c0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+        }
+
+        ::-webkit-scrollbar-button {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            height: 16px;
+            width: 16px;
+        }
+
+        ::-webkit-scrollbar-corner {
+            background: #c0c0c0;
+        }
+
+        @media (max-width: 768px) {
+            .chat-messages {
+                height: calc(100vh - 180px);
+            }
+
+            .chat-suggestions {
+                padding: 5px;
+            }
+
+            .chat-input {
+                padding: 5px;
+            }
+
+            .status-bar, .footer {
+                padding: 5px 10px;
+            }
+        }
+
+        /* Saved Events Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1001; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            box-shadow: inset -1px -1px #404040;
+            padding: 20px;
+            width: 80%;
+            max-width: 500px;
+            position: relative; /* For close button positioning */
+        }
+
+        .modal-header {
+            background: #000080;
+            color: white;
+            padding: 5px 10px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .close-button {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            width: 16px;
+            height: 16px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .close-button::after {
+            content: '×';
+            color: #000000;
+            font-size: 12px;
+        }
+        .close-button:active {
+             border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        #saved-events-list {
+            list-style: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #808080;
+            padding: 10px;
+        }
+
+        #saved-events-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #808080;
+        }
+        #saved-events-list li:last-child {
+            border-bottom: none;
+        }
+
+        #saved-events-list .remove-event-button {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            color: black;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        #saved-events-list .remove-event-button:active {
+            border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+
+        .saved-events-button {
+            background: #c0c0c0;
+            border: 2px solid #ffffff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+            color: black;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 10px; /* Add some spacing */
+        }
+        .saved-events-button:active {
+             border-color: #808080;
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+        }
+        /* Dark theme adjustments */
+        .dark-theme .modal-content {
+            background: #000080;
+            border-color: #c0c0c0;
+            color: white;
+        }
+        .dark-theme .modal-header {
+            background: #000000;
+        }
+         .dark-theme .close-button {
+            background: #000080;
+            border-color: #c0c0c0;
+        }
+        .dark-theme .close-button::after {
+            color: #ffffff;
+        }
+        .dark-theme #saved-events-list {
+            background: #000000;
+            border-color: #c0c0c0;
+            color: white;
+        }
+        .dark-theme #saved-events-list li {
+            border-bottom: 1px solid #c0c0c0;
+        }
+        .dark-theme #saved-events-list .remove-event-button {
+             background: #000000;
+            border-color: #c0c0c0;
+            color: white;
+        }
+        .dark-theme .saved-events-button {
+            background: #000000;
+            border-color: #c0c0c0;
+            color: white;
+        }
+        .dark-theme .restore::after {
+            border-left-color: #ffffff;
+            border-top-color: #ffffff;
+        }
+        .dark-theme .restore::before {
+            border-right-color: #ffffff;
+            border-bottom-color: #ffffff;
+            background: #000080;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" onclick="toggleTheme()">
+        <i class="fas fa-moon"></i>
+    </button>
+    <div class="container" id="app-container">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fas fa-calendar-alt"></i> Event Finder AI Assistant
+            </div>
+            <div class="header-right-controls">
+                <button id="saved-events-btn" class="saved-events-button"><i class="fas fa-bookmark"></i> Saved</button>
+                <div class="window-controls">
+                    <div class="window-button minimize"></div>
+                    <div class="window-button maximize" id="fullscreen-btn"></div>
+                    <div class="window-button close"></div>
+                </div>
+            </div>
+        </div>
+        <div class="chat-suggestions">
+            <div class="suggestion-chip" onclick="sendSuggestion('Show events in Mumbai this weekend')"><i class="fas fa-map-marker-alt"></i> Events in Mumbai</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('Tech events in Bangalore')"><i class="fas fa-laptop-code"></i> Tech in Bangalore</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('Cultural events in Delhi')"><i class="fas fa-theater-masks"></i> Cultural in Delhi</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('Music concerts in Chennai')"><i class="fas fa-music"></i> Music in Chennai</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('Sports events in India')"><i class="fas fa-running"></i> Sports Events</div>
+            <div class="suggestion-chip" onclick="sendSuggestion('Food festivals in Kolkata')"><i class="fas fa-utensils"></i> Food in Kolkata</div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message welcome-animation">
+                <div style="font-size: 1.2em; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-robot"></i> Hello! I'm your Event Finder AI Assistant
+                </div>
+                I can help you discover exciting events across India and worldwide. Try asking me about:
+                <br><br>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <span class="category-badge"><i class="fas fa-calendar-day"></i> Events this weekend</span>
+                    <span class="category-badge"><i class="fas fa-music"></i> Music concerts</span>
+                    <span class="category-badge"><i class="fas fa-laptop-code"></i> Tech conferences</span>
+                    <span class="category-badge"><i class="fas fa-theater-masks"></i> Cultural festivals</span>
+                </div>
+                <br>
+                What kind of events are you interested in?
+            </div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Ask me about events..." onkeypress="handleKeyPress(event)">
+            <button id="send-button" onclick="sendMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+        </div>
+        <div class="status-bar">
+            <div class="status-bar-left">
+                <span><i class="fas fa-circle" style="color: #00ff00; font-size: 8px;"></i> Online</span>
+                <span><i class="fas fa-clock"></i> Ready</span>
+            </div>
+            <div class="status-bar-right">
+                <span><i class="fas fa-database"></i> Events DB Connected</span>
+                <span id="current-time"></span>
+            </div>
+        </div>
+        <div class="footer">
+            Made by <span>Vaibhav Sharma (12316031)</span> | <span>Sanskar Sainik (12315897)</span>
+        </div>
+        <!-- Saved Events Modal -->
+        <div id="saved-events-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span><i class="fas fa-bookmark"></i> Saved Events</span>
+                    <span class="close-button" id="close-modal-btn">&nbsp;</span>
+                </div>
+                <ul id="saved-events-list">
+                    <li>Your saved list is empty.</li> 
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="help-button">?</div>
+
+    <script>
+        // Store conversation history
+        let conversationHistory = [];
+        
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Add user message
+            addMessage(message, 'user');
+            conversationHistory.push({ role: 'user', content: message });
+            input.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('http://localhost:5000/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+
+                // Hide typing indicator
+                hideTypingIndicator();
+
+                if (data.error) {
+                    addErrorMessage(data.error);
+                } else {
+                    addMessage(data.response, 'bot');
+                    conversationHistory.push({ role: 'assistant', content: data.response });
+                }
+            } catch (error) {
+                hideTypingIndicator();
+                addErrorMessage("Sorry, I couldn't connect to the server. Please make sure the server is running.");
+                console.error('Error:', error);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendSuggestion(suggestion) {
+            document.getElementById('user-input').value = suggestion;
+            sendMessage();
+        }
+
+        function addMessage(text, sender) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            if (sender === 'bot') {
+                if (text.includes('Location:') || text.includes('Date:')) {
+                    // Format event information as a card
+                    const events = text.split('\n\n').filter(e => e.trim());
+                    messageDiv.innerHTML = formatEventsResponse(events, text);
+                } else {
+                    // Regular message with typewriter effect
+                    messageDiv.innerHTML = '<div class="typewriter"></div>';
+                    const typewriterDiv = messageDiv.querySelector('.typewriter');
+                    typeText(typewriterDiv, text);
+                }
+            } else {
+                // User message
+                messageDiv.innerHTML = formatText(text);
+            }
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function typeText(element, text) {
+            let i = 0;
+            const speed = 10; // Reduced from 30ms to 10ms for faster typing
+            const chunkSize = 3; // Type multiple characters at once
+            
+            function type() {
+                if (i < text.length) {
+                    const end = Math.min(i + chunkSize, text.length);
+                    element.innerHTML = formatText(text.substring(0, end));
+                    i = end;
+                    setTimeout(type, speed);
+                } else {
+                    // Remove the cursor after typing is complete
+                    element.classList.remove('typewriter');
+                }
+            }
+            
+            type();
+        }
+
+        function formatEventsResponse(events, fullText) {
+            // Check if the text is an event listing or just a regular response
+            if (events.length > 0 && (events[0].includes('Location:') || events[0].includes('Date:'))) {
+                // It's an event listing
+                return events.map(event => formatEventCard(event)).join('');
+            } else {
+                // It's a regular response with possibly some event information
+                return formatText(fullText);
+            }
+        }
+
+        function formatEventCard(eventText) {
+            const lines = eventText.split('\n');
+            let title = lines[0].replace(/^[-•]?\s*/, '');
+            
+            // Determine event category to select appropriate icon
+            let categoryIcon = 'calendar-alt';
+            if (title.toLowerCase().includes('music') || title.toLowerCase().includes('concert')) {
+                categoryIcon = 'music';
+            } else if (title.toLowerCase().includes('tech') || title.toLowerCase().includes('conference')) {
+                categoryIcon = 'laptop-code';
+            } else if (title.toLowerCase().includes('food') || title.toLowerCase().includes('festival')) {
+                categoryIcon = 'utensils';
+            } else if (title.toLowerCase().includes('sport') || title.toLowerCase().includes('game')) {
+                categoryIcon = 'running';
+            } else if (title.toLowerCase().includes('art') || title.toLowerCase().includes('cultural')) {
+                categoryIcon = 'theater-masks';
+            }
+            
+            // Extract details from the event text
+            const details = {};
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    const colonIndex = line.indexOf(':');
+                    if (colonIndex !== -1) {
+                        const key = line.substring(0, colonIndex).trim();
+                        const value = line.substring(colonIndex + 1).trim();
+                        details[key] = value;
+                    }
+                }
+            }
+            
+            // Determine image placeholder based on event type (removed image logic)
+            // let imageSrc = ''; 
+            // ... image selection logic removed ...
+
+            const cardHTML = `
+                <div class="event-card">
+                    
+                    <h3><i class="fas fa-${categoryIcon}"></i> ${title}</h3>
+                    <div class="event-details">
+                        ${details['Location'] ? `<span><i class="fas fa-map-marker-alt"></i> Location:</span><span>${details['Location']}</span>` : ''}
+                        ${details['Date'] ? `<span><i class="fas fa-calendar"></i> Date:</span><span>${details['Date']}</span>` : ''}
+                        ${details['Time'] ? `<span><i class="fas fa-clock"></i> Time:</span><span>${details['Time']}</span>` : ''}
+                        ${details['Date & Time'] ? `<span><i class="fas fa-clock"></i> Date & Time:</span><span>${details['Date & Time']}</span>` : ''}
+                        ${details['Category'] ? `<span><i class="fas fa-tag"></i> Category:</span><span>${details['Category']}</span>` : ''}
+                        ${details['Price'] || details['Price Range'] ? `<span><i class="fas fa-rupee-sign"></i> Price:</span><span>${details['Price'] || details['Price Range']}</span>` : ''}
+                        ${details['Description'] ? `<span><i class="fas fa-info-circle"></i> Description:</span><span>${details['Description']}</span>` : ''}
+                        ${details['Additional Info'] ? `<span><i class="fas fa-exclamation-circle"></i> Additional Info:</span><span>${details['Additional Info']}</span>` : ''}
+                    </div>
+                    <div class="event-actions">
+                        
+                        <button class="event-button" onclick="saveEvent('${title}')"><i class="fas fa-bookmark"></i> Save</button>
+                    </div>
+                </div>
+            `;
+            
+            return cardHTML;
+        }
+
+        function formatText(text) {
+            // Convert markdown-like syntax to HTML
+            let formattedText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')  // Italic
+                .replace(/^- (.*)/gm, '<li>$1</li>')  // List items
+                .replace(/<li>.*?<\/li>/gs, (match) => `<ul>${match}</ul>`)  // Wrap list items
+                .replace(/\n\n/g, '<br><br>')  // Paragraphs
+                .replace(/\n/g, '<br>');  // Line breaks
+            
+            // Add emoji for better visual appeal
+            formattedText = formattedText
+                .replace(/events/gi, (match) => match.toLowerCase() === 'events' ? '🎟️ events' : match)
+                .replace(/music/gi, (match) => match.toLowerCase() === 'music' ? '🎵 music' : match)
+                .replace(/tech/gi, (match) => match.toLowerCase() === 'tech' ? '💻 tech' : match)
+                .replace(/sport/gi, (match) => match.toLowerCase() === 'sport' ? '🏆 sport' : match)
+                .replace(/food/gi, (match) => match.toLowerCase() === 'food' ? '🍲 food' : match)
+                .replace(/cultural/gi, (match) => match.toLowerCase() === 'cultural' ? '🏛️ cultural' : match);
+                
+            return formattedText;
+        }
+
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            document.getElementById('chat-messages').appendChild(indicator);
+            // Smooth scroll to the indicator
+            const messagesDiv = document.getElementById('chat-messages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.querySelector('.typing-indicator');
+            if (indicator) {
+                indicator.style.opacity = '0';
+                setTimeout(() => indicator.remove(), 300);
+            }
+        }
+
+        function addErrorMessage(text) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${text}`;
+            messagesDiv.appendChild(errorDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Save event to local storage
+        function saveEvent(eventName) {
+            let savedEvents = JSON.parse(localStorage.getItem('savedEvents') || '[]');
+            let message = '';
+            
+            if (!savedEvents.includes(eventName)) {
+                savedEvents.push(eventName);
+                localStorage.setItem('savedEvents', JSON.stringify(savedEvents));
+                message = `"${eventName}" has been saved!`;
+            } else {
+                message = `"${eventName}" is already saved.`;
+            }
+
+            // Simple confirmation alert
+            alert(message);
+        }
+
+        // Toggle dark/light theme
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.querySelector('.theme-toggle i');
+            
+            body.classList.toggle('dark-theme');
+            
+            if (body.classList.contains('dark-theme')) {
+                themeToggle.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeToggle.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Load saved theme preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                document.querySelector('.theme-toggle i').className = 'fas fa-sun';
+            }
+        });
+
+        // Update current time in status bar
+        function updateTime() {
+            const timeElement = document.getElementById('current-time');
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+            timeElement.innerHTML = `<i class="far fa-clock"></i> ${timeString}`;
+        }
+
+        // Update time every minute
+        setInterval(updateTime, 60000);
+        updateTime(); // Initial update
+
+        const savedEventsModal = document.getElementById('saved-events-modal');
+        const savedEventsBtn = document.getElementById('saved-events-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const savedEventsListUl = document.getElementById('saved-events-list');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const appContainer = document.getElementById('app-container');
+
+        // Show Saved Events Modal
+        function showSavedEvents() {
+            const savedEvents = JSON.parse(localStorage.getItem('savedEvents') || '[]');
+            savedEventsListUl.innerHTML = ''; // Clear current list
+
+            if (savedEvents.length === 0) {
+                savedEventsListUl.innerHTML = '<li>Your saved list is empty.</li>';
+            } else {
+                savedEvents.forEach(event => {
+                    const li = document.createElement('li');
+                    li.textContent = event;
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.textContent = 'Remove';
+                    removeBtn.className = 'remove-event-button';
+                    // Use an arrow function to pass the event name correctly
+                    removeBtn.onclick = () => removeSavedEvent(event);
+                    
+                    li.appendChild(removeBtn);
+                    savedEventsListUl.appendChild(li);
+                });
+            }
+
+            savedEventsModal.style.display = 'flex'; // Show modal
+        }
+
+        // Close Saved Events Modal
+        function closeSavedEventsModal() {
+            savedEventsModal.style.display = 'none';
+        }
+
+        // Remove Saved Event
+        function removeSavedEvent(eventName) {
+            let savedEvents = JSON.parse(localStorage.getItem('savedEvents') || '[]');
+            savedEvents = savedEvents.filter(event => event !== eventName);
+            localStorage.setItem('savedEvents', JSON.stringify(savedEvents));
+            showSavedEvents(); // Refresh the list in the modal
+        }
+
+        // --- Event Listeners ---
+        savedEventsBtn.onclick = showSavedEvents;
+        closeModalBtn.onclick = closeSavedEventsModal;
+        fullscreenBtn.onclick = toggleFullScreen;
+
+        // Listen for fullscreen changes to update the button icon
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+        document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+        document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+
+        // Close modal if user clicks outside the modal content
+        window.onclick = function(event) {
+            if (event.target == savedEventsModal) {
+                closeSavedEventsModal();
+            }
+        }
+
+        // --- Fullscreen Toggle Functionality ---
+        function isFullScreen() {
+            return document.fullscreenElement ||
+                   document.webkitFullscreenElement ||
+                   document.mozFullScreenElement ||
+                   document.msFullscreenElement;
+        }
+
+        function toggleFullScreen() {
+            if (!isFullScreen()) {
+                // Enter fullscreen
+                if (appContainer.requestFullscreen) {
+                    appContainer.requestFullscreen();
+                } else if (appContainer.mozRequestFullScreen) { /* Firefox */
+                    appContainer.mozRequestFullScreen();
+                } else if (appContainer.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    appContainer.webkitRequestFullscreen();
+                } else if (appContainer.msRequestFullscreen) { /* IE/Edge */
+                    appContainer.msRequestFullscreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE/Edge */
+                    document.msExitFullscreen();
+                }
+            }
+        }
+
+        // Update button icon based on fullscreen state
+        function updateFullscreenButton() {
+             if (isFullScreen()) {
+                fullscreenBtn.classList.remove('maximize');
+                fullscreenBtn.classList.add('restore');
+            } else {
+                fullscreenBtn.classList.remove('restore');
+                fullscreenBtn.classList.add('maximize');
+            }
+        }
+
+        // Initial call to set the correct icon on load
+        updateFullscreenButton();
+    </script>
+</body>
+</html> 
